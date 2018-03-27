@@ -122,7 +122,7 @@ else()
 	)
  endif()
 
-add_custom_target(Run_ULT ALL DEPENDS GMMULT)
+add_custom_target(Run_ULT ALL DEPENDS ${EXE_NAME})
 
 add_custom_command(
       TARGET Run_ULT
