@@ -365,6 +365,7 @@ bs_add_some_common_includes()
   ${BS_DIR_GMMLIB}/Texture
   ${BS_DIR_GMMLIB}/Resource
   ${BS_DIR_GMMLIB}/Platform
+  ${BS_DIR_GMMLIB}/CachePolicy
   ${BS_DIR_UTIL}
   ${BS_DIR_INC}
   ${BS_DIR_INC}/common
