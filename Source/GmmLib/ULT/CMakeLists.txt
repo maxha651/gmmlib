@@ -149,12 +149,3 @@ else()
     )
  endif()
 
-add_custom_target(Run_ULT ALL DEPENDS GMMULT)
-
-add_custom_command(
-    TARGET Run_ULT
-    POST_BUILD
-    COMMAND echo running ULTs
-    COMMAND ${EXE_NAME}  --gtest_filter=CTest*
-)
-
