@@ -94,6 +94,7 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
             {
                 uint32_t h0, h1, hL, i, NumSamples, QPitch, Z_HeightL;
                 uint32_t HZ_HAlign = 16, HZ_VAlign = 8;
+                uint8_t  HZ_DepthRows = pPlatform->HiZPixelsPerByte;
 
                 // HZ operates in pixel space starting from SKL. So, it does not care
                 // whether the depth buffer is in MSAA mode or not.
@@ -135,13 +136,13 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
                         (pTexInfo->MaxLod > 0) ?
                         (h0 + GFX_MAX(h1, Z_HeightL)) :
                         h0;
-                        QPitch /= 2;
+                        QPitch /= HZ_DepthRows;
                         pTexInfo->ArraySize  = Z_Depth;
                         pTexInfo->BaseHeight = QPitch;
                     }
 
                     pTexInfo->Alignment.HAlign = HZ_HAlign;
-                    pTexInfo->Alignment.VAlign = HZ_VAlign / 2;
+                    pTexInfo->Alignment.VAlign = HZ_VAlign / HZ_DepthRows;
                 }
                 else //if (GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) >= IGFX_GEN7_CORE)
                 {
@@ -200,7 +201,7 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
                      (pTexInfo->MSAA.NumSamples == 8) || (pTexInfo->MSAA.NumSamples == 16));
 
         if(pTexInfo->MSAA.NumSamples > 1 &&
-           (GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN10_CORE || pTexInfo->Flags.Gpu.MCS)) // CCS for MSAA Compression
+           (GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN11_CORE || pTexInfo->Flags.Gpu.MCS)) // CCS for MSAA Compression
         {
             //__GMM_ASSERT(!pTexInfo->Flags.Gpu.UnifiedAuxSurface);
 
@@ -229,17 +230,18 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
         }
         else // Non-MSAA CCS Use (i.e. Render Target Fast Clear)
         {
-            if(!pTexInfo->Flags.Info.Linear &&
-               !pTexInfo->Flags.Info.TiledW &&
+            if(!pTexInfo->Flags.Info.TiledW &&
                ((GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) < IGFX_GEN9_CORE) ||
                 !pTexInfo->Flags.Info.TiledX) &&
-               ((GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN10_CORE) ||
-                (pTexInfo->Flags.Info.TiledY || pTexInfo->Flags.Info.TiledYs)) && //!Yf - deprecate Yf
+               ((GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN11_CORE &&
+                 !pTexInfo->Flags.Info.Linear) ||
+                (pTexInfo->Flags.Info.TiledY || pTexInfo->Flags.Info.TiledYs ||
+                 (pTexInfo->Type == RESOURCE_BUFFER && pTexInfo->Flags.Info.Linear))) && //!Yf - deprecate Yf
                ((GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) >= IGFX_GEN8_CORE) ||
                 ((pTexInfo->MaxLod == 0) &&
                  (pTexInfo->ArraySize <= 1))) &&
                ((GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) > IGFX_GEN10_CORE) ||
-                ((pTexInfo->BitsPerPixel == 32) ||
+               ((pTexInfo->BitsPerPixel == 32) ||
                  (pTexInfo->BitsPerPixel == 64) ||
                  (pTexInfo->BitsPerPixel == 128))))
             {
@@ -353,7 +355,7 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
                 GMM_ASSERTDPF((pTexInfo->MaxLod == 0), "Stencil Buffer LOD's not supported!");
             }
 
-            // Separate Stencil Tile-W Gen8-Gen10, otherwise Tile-Y
+            // Separate Stencil Tile-W Gen8-Gen11, otherwise Tile-Y
             pTexInfo->Flags.Info.Linear  = 0;
             pTexInfo->Flags.Info.TiledX  = 0;
             pTexInfo->Flags.Info.TiledYf = 0;
@@ -362,7 +364,7 @@ GMM_STATUS GmmLib::GmmTextureCalc::PreProcessTexSpecialCases(GMM_TEXTURE_INFO *p
             pTexInfo->Flags.Info.TiledY  = 0;
 
             if(GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) >= IGFX_GEN8_CORE &&
-               GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN10_CORE)
+               GFX_GET_CURRENT_RENDERCORE(pPlatform->Platform) <= IGFX_GEN11_CORE)
             {
                 pTexInfo->Flags.Info.TiledW = 1;
             }
